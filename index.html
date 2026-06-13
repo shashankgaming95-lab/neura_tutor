@@ -1,361 +1,700 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NeuraTutor — Emotion-Aware Learning Assistant</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --bg1:#fff;--bg2:#f5f5f4;--bg3:#e8e8e5;
-      --t1:#1a1a1a;--t2:#6b6b6b;--t3:#9b9b9b;
-      --bd:rgba(0,0,0,.12);--bd2:rgba(0,0,0,.20);
-      --p50:#EEEDFE;--p200:#AFA9EC;--p400:#7F77DD;
-      --p600:#534AB7;--p800:#3C3489;--p900:#26215C;
-    }
-    @media(prefers-color-scheme:dark){
-      :root{--bg1:#1e1e1e;--bg2:#2a2a2a;--bg3:#333;
-        --t1:#f0f0f0;--t2:#a0a0a0;--t3:#666;
-        --bd:rgba(255,255,255,.10);--bd2:rgba(255,255,255,.18);
-        --p50:#2a2660;--p200:#534AB7;--p400:#7F77DD;
-        --p600:#AFA9EC;--p800:#CECBF6;--p900:#EEEDFE;}
-    }
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-      background:var(--bg3);display:flex;flex-direction:column;
-      align-items:center;justify-content:center;min-height:100vh;padding:16px;}
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NeuraTutor — Learn at the speed of thought</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;
+  --surface:#0d1117;
+  --surface2:#111827;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.12);
+  --text:#f0f4ff;
+  --text2:#8b9ab5;
+  --text3:#4a5568;
+  /* emotion accent — changes per mood */
+  --accent:#7c6fef;
+  --accent2:#a89cf7;
+  --glow:rgba(124,111,239,0.18);
+  --glow2:rgba(124,111,239,0.08);
+  --tag-bg:rgba(124,111,239,0.15);
+  --tag-color:#c4bcff;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;
+  transition:background 0.6s ease;
+}
 
-    /* ── Loading screen ── */
-    #loader{position:fixed;inset:0;background:var(--bg1);z-index:100;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
-      padding:32px;transition:opacity .4s;}
-    #loader.hide{opacity:0;pointer-events:none;}
-    .loader-icon{width:64px;height:64px;border-radius:50%;background:var(--p50);
-      display:flex;align-items:center;justify-content:center;}
-    .loader-icon i{font-size:32px;color:var(--p600);}
-    .loader-title{font-size:20px;font-weight:600;color:var(--t1);}
-    .loader-sub{font-size:13px;color:var(--t2);text-align:center;max-width:340px;line-height:1.6;}
-    .progress-wrap{width:300px;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;}
-    #progress-bar{height:100%;border-radius:4px;background:var(--p400);width:0%;transition:width .3s;}
-    #progress-text{font-size:12px;color:var(--t2);}
-    .warn-box{background:#FAEEDA;border:.5px solid #BA7517;color:#412402;
-      border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.6;max-width:340px;text-align:center;}
+/* ── Ambient canvas ─────────────────────────────────────────────────── */
+#ambient{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  transition:opacity 0.8s;
+}
 
-    /* ── App ── */
-    .app{display:flex;flex-direction:column;width:100%;max-width:720px;height:690px;
-      background:var(--bg1);border:.5px solid var(--bd);border-radius:12px;
-      overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);}
-    .header{padding:12px 16px;border-bottom:.5px solid var(--bd);
-      display:flex;align-items:center;gap:12px;background:var(--bg2);flex-shrink:0;}
-    .avatar{width:38px;height:38px;border-radius:50%;background:var(--p50);
-      display:flex;align-items:center;justify-content:center;}
-    .avatar i{font-size:20px;color:var(--p600);}
-    .hinfo{flex:1;}
-    .htitle{font-size:15px;font-weight:500;color:var(--t1);}
-    .hsub{font-size:12px;color:var(--t2);}
-    .ewrap{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
-    .ewrap span{font-size:11px;color:var(--t2);}
-    .etrack{width:80px;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;}
-    #ebar{height:100%;border-radius:3px;background:var(--p400);width:75%;transition:width .5s,background .5s;}
-    .ebar2{display:flex;align-items:center;gap:8px;padding:8px 16px;
-      background:var(--bg2);border-bottom:.5px solid var(--bd);flex-shrink:0;flex-wrap:wrap;}
-    .elabel{font-size:12px;color:var(--t2);white-space:nowrap;}
-    .pills{display:flex;gap:6px;flex-wrap:wrap;}
-    .pill{font-size:11px;padding:3px 10px;border-radius:999px;
-      border:.5px solid var(--bd2);cursor:pointer;transition:all .15s;
-      color:var(--t2);background:var(--bg1);}
-    .pill.active{background:var(--p50);color:var(--p800);border-color:var(--p200);font-weight:500;}
-    .pill:hover:not(.active){background:var(--bg3);}
-    .msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;}
-    .msg{display:flex;gap:10px;align-items:flex-start;}
-    .msg.user{flex-direction:row-reverse;}
-    .mavatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;
-      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;}
-    .mavatar.bot{background:var(--p50);color:var(--p600);}
-    .mavatar.user{background:#E1F5EE;color:#0F6E56;}
-    .bubble{max-width:80%;padding:10px 14px;border-radius:14px;
-      font-size:13px;line-height:1.65;color:var(--t1);
-      background:var(--bg2);border:.5px solid var(--bd);}
-    .msg.user .bubble{background:var(--p50);border-color:var(--p200);color:var(--p900);}
-    .etag{display:inline-flex;align-items:center;gap:4px;font-size:10px;
-      padding:2px 8px;border-radius:999px;margin-bottom:5px;font-weight:500;}
-    .tbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
-    .tbtn{font-size:11px;padding:5px 10px;border-radius:8px;
-      border:.5px solid var(--bd2);background:var(--bg1);
-      color:var(--t1);cursor:pointer;transition:background .15s;}
-    .tbtn:hover{background:var(--bg2);}
-    .stats{display:flex;gap:8px;padding:10px 16px;
-      border-top:.5px solid var(--bd);background:var(--bg2);flex-shrink:0;}
-    .stat{flex:1;text-align:center;}
-    .sval{font-size:15px;font-weight:500;color:var(--t1);}
-    .slbl{font-size:10px;color:var(--t2);margin-top:1px;}
-    .hint{font-size:11px;color:var(--t3);text-align:center;padding:4px 16px 2px;flex-shrink:0;}
-    .irow{display:flex;gap:8px;padding:10px 16px;
-      border-top:.5px solid var(--bd);flex-shrink:0;}
-    .irow input{flex:1;font-size:13px;padding:8px 12px;border-radius:8px;
-      border:.5px solid var(--bd2);background:var(--bg1);color:var(--t1);
-      outline:none;font-family:inherit;}
-    .irow input:focus{border-color:var(--p400);}
-    .sbtn{padding:8px 16px;border-radius:8px;border:.5px solid var(--p200);
-      background:var(--p50);color:var(--p800);font-size:13px;font-family:inherit;
-      cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;}
-    .sbtn:hover{background:var(--p200);}
-    .sbtn:disabled{opacity:.5;cursor:not-allowed;}
-    .ldots{display:inline-flex;gap:3px;align-items:center;}
-    .ldots span{width:5px;height:5px;border-radius:50%;background:var(--p400);animation:bonce 1.2s infinite;}
-    .ldots span:nth-child(2){animation-delay:.2s;}
-    .ldots span:nth-child(3){animation-delay:.4s;}
-    @keyframes bonce{0%,80%,100%{transform:scale(.7);opacity:.5}40%{transform:scale(1);opacity:1}}
-    #mstatus{font-size:11px;padding:2px 8px;border-radius:999px;
-      border:.5px solid var(--bd);color:var(--t2);}
-    #mstatus.ok{background:#E1F5EE;color:#085041;border-color:#9FE1CB;}
-    #mstatus.err{background:#FAECE7;color:#4A1B0C;border-color:#F5C4B3;}
-    #mstatus.loading{background:var(--p50);color:var(--p800);border-color:var(--p200);}
-  </style>
+/* ── Loader ─────────────────────────────────────────────────────────── */
+#loader{
+  position:fixed;inset:0;z-index:200;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
+  transition:opacity 0.5s;
+}
+#loader.gone{opacity:0;pointer-events:none;}
+.loader-orb{
+  position:relative;width:80px;height:80px;
+}
+.loader-orb-inner{
+  width:100%;height:100%;border-radius:50%;
+  background:conic-gradient(from 0deg,var(--accent),transparent,var(--accent));
+  animation:spin 1.2s linear infinite;
+}
+.loader-orb-dot{
+  position:absolute;inset:6px;border-radius:50%;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:22px;font-weight:600;letter-spacing:-0.3px;
+  color:var(--text);
+}
+.loader-desc{font-size:13px;color:var(--text2);text-align:center;max-width:300px;line-height:1.7;}
+.progress-track{
+  width:260px;height:3px;border-radius:999px;
+  background:rgba(255,255,255,0.06);overflow:hidden;
+}
+#pbar{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width 0.3s;}
+#ptext{font-size:11px;color:var(--text3);font-family:'Space Grotesk',sans-serif;letter-spacing:0.5px;}
+.loader-note{
+  font-size:11px;color:var(--text3);text-align:center;
+  padding:10px 16px;border-radius:8px;
+  border:1px solid rgba(255,255,255,0.06);
+  max-width:280px;line-height:1.7;
+}
+.loader-note strong{color:var(--text2);}
+
+/* ── Shell ──────────────────────────────────────────────────────────── */
+.shell{
+  position:relative;z-index:1;
+  width:100%;max-width:780px;height:calc(100dvh - 32px);max-height:780px;
+  display:flex;flex-direction:column;
+  border-radius:20px;overflow:hidden;
+  border:1px solid var(--border2);
+  background:var(--surface);
+  box-shadow:0 0 0 1px var(--border),0 32px 64px rgba(0,0,0,0.6),0 0 80px var(--glow2);
+  transition:box-shadow 0.6s;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.hdr{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:14px;
+  padding:14px 20px;
+  border-bottom:1px solid var(--border);
+  background:rgba(255,255,255,0.02);
+  backdrop-filter:blur(12px);
+}
+.logo{
+  width:40px;height:40px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px var(--glow);
+  transition:box-shadow 0.6s,background 0.6s;
+  font-size:20px;
+}
+.hdr-info{flex:1;}
+.hdr-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:16px;font-weight:600;letter-spacing:-0.2px;
+  color:var(--text);line-height:1.2;
+}
+.hdr-sub{font-size:11px;color:var(--text2);margin-top:1px;letter-spacing:0.2px;}
+.hdr-right{display:flex;align-items:center;gap:12px;}
+.engage-block{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+.engage-row{display:flex;align-items:center;gap:8px;}
+.engage-label{font-size:10px;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;}
+.engage-track{
+  width:72px;height:4px;border-radius:999px;
+  background:rgba(255,255,255,0.06);overflow:hidden;
+}
+#ebar{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:75%;transition:width 0.6s,background 0.6s;}
+#mstatus{
+  font-size:10px;font-family:'Space Grotesk',sans-serif;
+  letter-spacing:0.8px;text-transform:uppercase;
+  padding:3px 10px;border-radius:999px;
+  border:1px solid var(--border2);color:var(--text3);
+  transition:all 0.4s;
+}
+#mstatus.ok{background:var(--tag-bg);color:var(--tag-color);border-color:var(--accent);}
+#mstatus.loading{background:var(--tag-bg);color:var(--accent2);border-color:var(--accent);}
+#mstatus.err{background:rgba(239,68,68,0.1);color:#f87171;border-color:#ef4444;}
+
+/* ── Mood strip ─────────────────────────────────────────────────────── */
+.mood-strip{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 20px;
+  border-bottom:1px solid var(--border);
+  background:rgba(0,0,0,0.2);
+  overflow-x:auto;scrollbar-width:none;
+}
+.mood-strip::-webkit-scrollbar{display:none;}
+.mood-label{
+  font-size:10px;color:var(--text3);
+  letter-spacing:0.8px;text-transform:uppercase;
+  white-space:nowrap;font-family:'Space Grotesk',sans-serif;
+}
+.moods{display:flex;gap:6px;flex-shrink:0;}
+.pill{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:500;
+  padding:5px 14px;border-radius:999px;
+  border:1px solid var(--border2);
+  cursor:pointer;transition:all 0.25s;
+  color:var(--text2);background:transparent;
+  white-space:nowrap;font-family:'Space Grotesk',sans-serif;
+  letter-spacing:0.1px;
+}
+.pill:hover{background:rgba(255,255,255,0.05);color:var(--text);}
+.pill.active{
+  background:var(--tag-bg);
+  color:var(--tag-color);
+  border-color:var(--accent);
+  box-shadow:0 0 12px var(--glow);
+}
+.pill-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:currentColor;
+  box-shadow:0 0 6px currentColor;
+}
+
+/* ── Messages ───────────────────────────────────────────────────────── */
+.msgs{
+  flex:1;overflow-y:auto;
+  padding:20px;
+  display:flex;flex-direction:column;gap:18px;
+  scroll-behavior:smooth;
+}
+.msgs::-webkit-scrollbar{width:4px;}
+.msgs::-webkit-scrollbar-track{background:transparent;}
+.msgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:999px;}
+
+.msg{display:flex;gap:12px;align-items:flex-start;animation:fadeUp 0.3s ease both;}
+.msg.user{flex-direction:row-reverse;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.mavatar{
+  width:32px;height:32px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.mavatar.bot{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  box-shadow:0 0 14px var(--glow);
+  transition:background 0.6s,box-shadow 0.6s;
+}
+.mavatar.user{background:rgba(255,255,255,0.08);font-size:11px;font-weight:600;color:var(--text2);}
+
+.msg-body{max-width:76%;display:flex;flex-direction:column;gap:6px;}
+.msg.user .msg-body{align-items:flex-end;}
+
+.etag{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-family:'Space Grotesk',sans-serif;
+  letter-spacing:0.6px;text-transform:uppercase;
+  padding:3px 9px;border-radius:999px;
+  background:var(--tag-bg);color:var(--tag-color);
+  border:1px solid rgba(255,255,255,0.08);
+  width:fit-content;transition:all 0.4s;
+}
+
+.bubble{
+  padding:12px 16px;border-radius:16px;
+  font-size:13.5px;line-height:1.7;color:var(--text);
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  transition:all 0.3s;
+}
+.bubble strong{color:var(--accent2);font-weight:600;}
+.bubble code{
+  font-family:'Space Grotesk',monospace;font-size:12px;
+  background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;
+  color:var(--accent2);
+}
+.msg.user .bubble{
+  background:linear-gradient(135deg,rgba(124,111,239,0.18),rgba(124,111,239,0.08));
+  border-color:var(--accent);
+  color:var(--text);
+}
+
+/* topic quick-picks */
+.topics{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.topic{
+  font-size:12px;font-family:'Space Grotesk',sans-serif;
+  padding:6px 14px;border-radius:999px;
+  border:1px solid var(--border2);background:rgba(255,255,255,0.03);
+  color:var(--text2);cursor:pointer;transition:all 0.2s;
+  display:flex;align-items:center;gap:6px;
+}
+.topic:hover{background:var(--tag-bg);color:var(--tag-color);border-color:var(--accent);}
+
+/* ── Stats bar ──────────────────────────────────────────────────────── */
+.stats{
+  flex-shrink:0;
+  display:flex;
+  border-top:1px solid var(--border);
+  background:rgba(0,0,0,0.2);
+}
+.stat{
+  flex:1;padding:10px 0;text-align:center;
+  border-right:1px solid var(--border);
+}
+.stat:last-child{border-right:none;}
+.sval{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:18px;font-weight:600;color:var(--accent2);
+  transition:color 0.6s;line-height:1.1;
+}
+.slbl{font-size:10px;color:var(--text3);letter-spacing:0.6px;text-transform:uppercase;margin-top:3px;}
+
+/* ── Input ──────────────────────────────────────────────────────────── */
+.input-area{
+  flex-shrink:0;
+  padding:14px 16px;
+  border-top:1px solid var(--border);
+  background:rgba(0,0,0,0.3);
+  backdrop-filter:blur(12px);
+}
+.input-row{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:14px;
+  padding:4px 4px 4px 16px;
+  transition:border-color 0.3s,box-shadow 0.3s;
+}
+.input-row:focus-within{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--glow);
+}
+.input-row input{
+  flex:1;background:transparent;border:none;outline:none;
+  font-family:'Inter',sans-serif;font-size:14px;
+  color:var(--text);padding:8px 0;
+  caret-color:var(--accent2);
+}
+.input-row input::placeholder{color:var(--text3);}
+.input-row input:disabled{cursor:not-allowed;opacity:0.4;}
+.send-btn{
+  width:40px;height:40px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.25s;box-shadow:0 0 14px var(--glow);
+  color:#fff;font-size:16px;
+}
+.send-btn:hover{transform:scale(1.05);box-shadow:0 0 22px var(--glow);}
+.send-btn:disabled{opacity:0.3;cursor:not-allowed;transform:none;}
+.hint{
+  font-size:11px;color:var(--text3);text-align:center;
+  margin-top:8px;letter-spacing:0.2px;
+}
+
+/* ── Typing dots ────────────────────────────────────────────────────── */
+.ldots{display:inline-flex;gap:4px;align-items:center;padding:4px 0;}
+.ldots span{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent2);opacity:0.6;
+  animation:bop 1.2s ease-in-out infinite;
+}
+.ldots span:nth-child(2){animation-delay:.2s;}
+.ldots span:nth-child(3){animation-delay:.4s;}
+@keyframes bop{0%,80%,100%{transform:translateY(0);opacity:0.4}40%{transform:translateY(-5px);opacity:1}}
+
+/* ── Scrollbar for firefox ──────────────────────────────────────────── */
+.msgs{scrollbar-color:var(--border2) transparent;scrollbar-width:thin;}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media(max-width:600px){
+  body{padding:0;}
+  .shell{border-radius:0;max-height:100dvh;height:100dvh;}
+  .msgs{padding:14px;}
+  .bubble{font-size:13px;}
+}
+</style>
 </head>
 <body>
 
-<!-- Loading screen -->
+<!-- ambient canvas -->
+<canvas id="ambient"></canvas>
+
+<!-- Loader -->
 <div id="loader">
-  <div class="loader-icon"><i class="ti ti-brain"></i></div>
+  <div class="loader-orb">
+    <div class="loader-orb-inner"></div>
+    <div class="loader-orb-dot">🧠</div>
+  </div>
   <div class="loader-title">NeuraTutor</div>
-  <div class="loader-sub">
-    Loading AI model into your browser.<br>
-    This happens <strong>once</strong> — about 400MB download, cached after that.
-  </div>
-  <div class="progress-wrap"><div id="progress-bar"></div></div>
-  <div id="progress-text">Initialising…</div>
-  <div class="warn-box">
-    ⚡ Requires a browser with <strong>WebGPU</strong> support.<br>
-    Use <strong>Chrome 113+</strong> or <strong>Edge 113+</strong> on desktop.
-  </div>
+  <div class="loader-desc">Starting NeuraTutor…</div>
+  <div class="progress-track"><div id="pbar"></div></div>
+  <div id="ptext">Initialising…</div>
+  <div class="loader-note">⚡ First load ~400MB · <strong>cached forever after</strong><br>Requires Chrome 113+ or Edge 113+</div>
 </div>
 
-<!-- App -->
-<div class="app">
-  <div class="header">
-    <div class="avatar"><i class="ti ti-brain"></i></div>
-    <div class="hinfo">
-      <div class="htitle">NeuraTutor</div>
-      <div class="hsub">Emotion-Aware Virtual Learning Assistant</div>
+<!-- App shell -->
+<div class="shell">
+
+  <!-- Header -->
+  <header class="hdr">
+    <div class="logo">🧠</div>
+    <div class="hdr-info">
+      <div class="hdr-title">NeuraTutor</div>
+      <div class="hdr-sub">Learns how you feel · Teaches how you need</div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-      <span id="mstatus" class="loading">loading model…</span>
-      <div class="ewrap">
-        <span>Engagement</span>
-        <div class="etrack"><div id="ebar"></div></div>
+    <div class="hdr-right">
+      <div class="engage-block">
+        <div class="engage-row">
+          <span class="engage-label">Engagement</span>
+          <div class="engage-track"><div id="ebar"></div></div>
+        </div>
+        <span id="mstatus" class="loading">loading</span>
       </div>
     </div>
-  </div>
+  </header>
 
-  <div class="ebar2">
-    <span class="elabel"><i class="ti ti-mood-smile" style="font-size:13px;vertical-align:-1px;margin-right:3px"></i>Your mood:</span>
-    <div class="pills">
-      <span class="pill" data-e="confident">😊 Confident</span>
-      <span class="pill active" data-e="curious">🤔 Curious</span>
-      <span class="pill" data-e="confused">😕 Confused</span>
-      <span class="pill" data-e="frustrated">😤 Frustrated</span>
-      <span class="pill" data-e="bored">😑 Bored</span>
+  <!-- Mood selector -->
+  <div class="mood-strip">
+    <span class="mood-label">Mood</span>
+    <div class="moods">
+      <button class="pill" data-e="confident"><span class="pill-dot"></span>Confident</button>
+      <button class="pill active" data-e="curious"><span class="pill-dot"></span>Curious</button>
+      <button class="pill" data-e="confused"><span class="pill-dot"></span>Confused</button>
+      <button class="pill" data-e="frustrated"><span class="pill-dot"></span>Frustrated</button>
+      <button class="pill" data-e="bored"><span class="pill-dot"></span>Bored</button>
     </div>
   </div>
 
+  <!-- Messages -->
   <div class="msgs" id="msgs">
     <div class="msg">
-      <div class="mavatar bot"><i class="ti ti-robot" style="font-size:15px"></i></div>
-      <div>
+      <div class="mavatar bot">🤖</div>
+      <div class="msg-body">
         <div class="bubble">
-          Hey! I'm <strong>NeuraTutor</strong> — your AI learning companion that adapts to how you feel. 👋<br><br>
-          Loading the AI model into your browser… this takes about a minute on first visit, then it's instant.
-          <div class="tbtns" id="topic-btns" style="display:none">
-            <button class="tbtn" onclick="ask('Explain neural networks to me')">🧠 Neural Networks</button>
-            <button class="tbtn" onclick="ask('How does machine learning work?')">🤖 Machine Learning</button>
-            <button class="tbtn" onclick="ask('What is gradient descent?')">📉 Gradient Descent</button>
-            <button class="tbtn" onclick="ask('Explain backpropagation simply')">🔁 Backpropagation</button>
+          Hey — I'm <strong>NeuraTutor</strong>. I don't teach everyone the same way.<br><br>
+          Tell me how you're feeling above and I'll adapt — simpler when you're confused, deeper when you're curious, more exciting when you're bored.<br><br>
+          Loading the AI model into your browser… won't be long. 🚀
+          <div class="topics" id="topic-btns" style="display:none">
+            <button class="topic" onclick="ask('Explain neural networks to me')">🧠 Neural Networks</button>
+            <button class="topic" onclick="ask('How does machine learning work?')">🤖 Machine Learning</button>
+            <button class="topic" onclick="ask('What is gradient descent?')">📉 Gradient Descent</button>
+            <button class="topic" onclick="ask('Explain backpropagation simply')">🔁 Backpropagation</button>
+            <button class="topic" onclick="ask('What is a transformer model?')">✨ Transformers</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Stats -->
   <div class="stats">
-    <div class="stat"><div class="sval" id="smsgs">0</div><div class="slbl">exchanges</div></div>
-    <div class="stat"><div class="sval" id="smood">Curious</div><div class="slbl">current mood</div></div>
-    <div class="stat"><div class="sval" id="sstyle">Exploratory</div><div class="slbl">teach style</div></div>
+    <div class="stat"><div class="sval" id="smsgs">0</div><div class="slbl">Exchanges</div></div>
+    <div class="stat"><div class="sval" id="smood">Curious</div><div class="slbl">Mood</div></div>
+    <div class="stat"><div class="sval" id="sstyle">Exploratory</div><div class="slbl">Style</div></div>
+    <div class="stat"><div class="sval" id="swords">0</div><div class="slbl">Words learned</div></div>
   </div>
 
-  <div class="hint">Change your mood above — the AI adapts its teaching style automatically</div>
-
-  <div class="irow">
-    <input type="text" id="inp" placeholder="Model loading, please wait…" disabled />
-    <button class="sbtn" id="sbtn" onclick="send()" disabled>
-      <i class="ti ti-send"></i> Ask
-    </button>
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-row">
+      <input type="text" id="inp" placeholder="Model loading…" disabled/>
+      <button class="send-btn" id="sbtn" onclick="send()" disabled title="Send">➤</button>
+    </div>
+    <div class="hint">Powered by Phi-3.5-mini · Runs entirely in your browser · Private by default</div>
   </div>
+
 </div>
 
-<!-- WebLLM — runs real LLM in browser via WebGPU, no server needed -->
-<script type="module">
-import * as webllm from "https://esm.run/@mlc-ai/web-llm";
-
-const EC = {
-  confident: {emoji:'😊',style:'Concise',    engage:85,color:'#1D9E75',tbg:'#E1F5EE',tc:'#085041',
-    sys:'The student feels confident. Give a concise, advanced explanation. Skip basics, add nuances. End with one harder follow-up question.'},
-  curious:   {emoji:'🤔',style:'Exploratory',engage:75,color:'#7F77DD',tbg:'#EEEDFE',tc:'#26215C',
-    sys:'The student is curious. Give a rich exploratory explanation with analogies and real-world examples. End with one thought-provoking question.'},
-  confused:  {emoji:'😕',style:'Simplified', engage:40,color:'#BA7517',tbg:'#FAEEDA',tc:'#412402',
-    sys:'The student is confused. Use the simplest language. Break into small numbered steps. Use an everyday analogy. Avoid jargon. Be warm. End with a comprehension check.'},
-  frustrated:{emoji:'😤',style:'Supportive', engage:25,color:'#D85A30',tbg:'#FAECE7',tc:'#4A1B0C',
-    sys:'The student is frustrated. Start with empathy. Simplify drastically. Use a fun analogy. Keep it short. End with encouragement.'},
-  bored:     {emoji:'😑',style:'Engaging',   engage:20,color:'#888780',tbg:'#F1EFE8',tc:'#2C2C2A',
-    sys:'The student is bored. Open with a shocking fact. Use energetic language and a real-world story. End with an intriguing question.'},
+<script>
+// ── Emotion themes ──────────────────────────────────────────────────────────
+const THEMES = {
+  confident:{
+    accent:'#22d3a5',accent2:'#6ee7c7',glow:'rgba(34,211,165,0.2)',glow2:'rgba(34,211,165,0.06)',
+    tag_bg:'rgba(34,211,165,0.12)',tag_color:'#6ee7c7',
+    emoji:'😊',style:'Concise',engage:85,label:'Confident',
+    sys:'The student feels confident. Give a concise, advanced explanation. Assume strong prior knowledge. Skip basics, add nuances and edge cases. End with one harder follow-up question that pushes them further.',
+  },
+  curious:{
+    accent:'#7c6fef',accent2:'#a89cf7',glow:'rgba(124,111,239,0.2)',glow2:'rgba(124,111,239,0.06)',
+    tag_bg:'rgba(124,111,239,0.15)',tag_color:'#c4bcff',
+    emoji:'🤔',style:'Exploratory',engage:75,label:'Curious',
+    sys:'The student is curious and engaged. Give a rich, exploratory explanation packed with interesting analogies, real-world examples, and a surprising fact they probably didn\'t know. End with one thought-provoking question to deepen curiosity.',
+  },
+  confused:{
+    accent:'#f59e0b',accent2:'#fcd34d',glow:'rgba(245,158,11,0.2)',glow2:'rgba(245,158,11,0.06)',
+    tag_bg:'rgba(245,158,11,0.12)',tag_color:'#fcd34d',
+    emoji:'😕',style:'Simplified',engage:40,label:'Confused',
+    sys:'The student is confused. Slow down. Use the simplest language possible. Break the concept into tiny numbered steps. Use one relatable everyday analogy. Avoid all jargon. Be warm and encouraging. End with one simple comprehension check question.',
+  },
+  frustrated:{
+    accent:'#f97316',accent2:'#fdba74',glow:'rgba(249,115,22,0.2)',glow2:'rgba(249,115,22,0.06)',
+    tag_bg:'rgba(249,115,22,0.12)',tag_color:'#fdba74',
+    emoji:'😤',style:'Supportive',engage:25,label:'Frustrated',
+    sys:'The student is frustrated. Lead with empathy — acknowledge this is genuinely hard. Drastically simplify. Use a fun or surprising analogy. Keep the response short and uplifting. End with encouragement that confusion means the brain is growing.',
+  },
+  bored:{
+    accent:'#ec4899',accent2:'#f9a8d4',glow:'rgba(236,72,153,0.2)',glow2:'rgba(236,72,153,0.06)',
+    tag_bg:'rgba(236,72,153,0.12)',tag_color:'#f9a8d4',
+    emoji:'😑',style:'Engaging',engage:20,label:'Bored',
+    sys:'The student is bored. Open with a shocking or counterintuitive fact. Make it exciting with pop culture, real-world impact, or a mini-challenge. Be energetic and unpredictable. End with an intriguing question that makes them genuinely want to know more.',
+  },
 };
 
-let cur = 'curious', count = 0, isLoading = false, engine = null;
+let cur = 'curious', count = 0, words = 0, loading = false, engine = true;
 
-// ── Load model ──────────────────────────────────────────────────────────────
-const MODEL = "Phi-3.5-mini-instruct-q4f16_1-MLC";
+// ── PASTE YOUR FREE GEMINI API KEY BELOW ─────────────────────────────────────
+// Get one free at: https://aistudio.google.com/app/apikey
+const GEMINI_API_KEY = "AQ.Ab8RN6LNRphgjMp-5tBPGpiE5ITBU3DZdOO0U1R06-jbFDNd0A";
+const GEMINI_MODEL = "gemini-flash-latest";
 
-const initProgressCallback = (p) => {
-  const pct = Math.round((p.progress || 0) * 100);
-  document.getElementById('progress-bar').style.width = pct + '%';
-  document.getElementById('progress-text').textContent = p.text || `Loading… ${pct}%`;
-};
+// ── Ambient canvas ──────────────────────────────────────────────────────────
+const canvas = document.getElementById('ambient');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
 
-try {
-  engine = await webllm.CreateMLCEngine(MODEL, { initProgressCallback });
+function resizeCanvas(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
-  // Hide loader
-  const loader = document.getElementById('loader');
-  loader.classList.add('hide');
-  setTimeout(() => loader.style.display = 'none', 500);
-
-  // Enable UI
-  document.getElementById('inp').disabled = false;
-  document.getElementById('inp').placeholder = 'Ask anything…';
-  document.getElementById('sbtn').disabled = false;
-  document.getElementById('topic-btns').style.display = 'flex';
-
-  const st = document.getElementById('mstatus');
-  st.textContent = 'model ready';
-  st.className = 'ok';
-
-  addBot('Model loaded! 🎉 You\'re feeling <strong>curious</strong> — pick a topic or ask me anything.', 'curious');
-
-} catch(e) {
-  document.getElementById('progress-text').textContent = '❌ ' + e.message;
-  const st = document.getElementById('mstatus');
-  st.textContent = 'load failed';
-  st.className = 'err';
-  console.error(e);
+function hexToRgb(hex){
+  const r=parseInt(hex.slice(1,3),16);
+  const g=parseInt(hex.slice(3,5),16);
+  const b=parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
 }
 
-// ── Emotion pills ────────────────────────────────────────────────────────────
-updateStats();
+for(let i=0;i<28;i++){
+  particles.push({
+    x:Math.random()*window.innerWidth,
+    y:Math.random()*window.innerHeight,
+    r:Math.random()*2+0.5,
+    vx:(Math.random()-0.5)*0.25,
+    vy:(Math.random()-0.5)*0.25,
+    opacity:Math.random()*0.4+0.1,
+  });
+}
+
+let animAccent = '7c6fef';
+function drawAmbient(){
+  ctx.clearRect(0,0,W,H);
+  const rgb = hexToRgb(THEMES[cur].accent);
+  const t = THEMES[cur];
+
+  // soft radial gradient bloom
+  const grad = ctx.createRadialGradient(W*0.5,H*0.4,0,W*0.5,H*0.4,W*0.7);
+  grad.addColorStop(0, `rgba(${rgb},0.04)`);
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+
+  // particles
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle = `rgba(${rgb},${p.opacity})`;
+    ctx.fill();
+  });
+
+  // connect nearby particles
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x;
+      const dy=particles[i].y-particles[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120){
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle=`rgba(${rgb},${0.08*(1-d/120)})`;
+        ctx.lineWidth=0.5;
+        ctx.stroke();
+      }
+    }
+  }
+
+  requestAnimationFrame(drawAmbient);
+}
+drawAmbient();
+
+// ── Apply theme ─────────────────────────────────────────────────────────────
+function applyTheme(e){
+  const t = THEMES[e];
+  const r = document.documentElement;
+  r.style.setProperty('--accent', t.accent);
+  r.style.setProperty('--accent2', t.accent2);
+  r.style.setProperty('--glow', t.glow);
+  r.style.setProperty('--glow2', t.glow2);
+  r.style.setProperty('--tag-bg', t.tag_bg);
+  r.style.setProperty('--tag-color', t.tag_color);
+  document.getElementById('smood').textContent = t.label;
+  document.getElementById('sstyle').textContent = t.style;
+  document.getElementById('ebar').style.width = t.engage+'%';
+}
+applyTheme(cur);
+
+// ── Pills ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.pill').forEach(p => {
   p.addEventListener('click', () => {
     document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
     p.classList.add('active');
     cur = p.dataset.e;
-    updateStats();
-    const c = EC[cur];
-    addBot(`Switched to <strong>${cur}</strong> ${c.emoji} — now teaching in <strong>${c.style}</strong> style. What would you like to learn?`, cur);
+    applyTheme(cur);
+    const t = THEMES[cur];
+    addBot(`Switched to <strong>${t.label}</strong> ${t.emoji} mode — I'll now teach in <strong>${t.style}</strong> style. What would you like to explore?`, cur);
   });
 });
 
 document.getElementById('inp').addEventListener('keydown', e => { if(e.key==='Enter') send(); });
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function updateStats() {
-  const c = EC[cur];
-  document.getElementById('smood').textContent = cur.charAt(0).toUpperCase()+cur.slice(1);
-  document.getElementById('sstyle').textContent = c.style;
-  document.getElementById('ebar').style.width = c.engage + '%';
-  document.getElementById('ebar').style.background = c.color;
-}
-function scroll() { const m=document.getElementById('msgs'); m.scrollTop=m.scrollHeight; }
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-window.ask = function(t) { document.getElementById('inp').value=t; send(); };
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function scroll(){ const m=document.getElementById('msgs'); m.scrollTop=m.scrollHeight; }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+window.ask = t => { document.getElementById('inp').value=t; send(); };
 
-function addUser(t) {
-  const d = document.createElement('div'); d.className='msg user';
-  d.innerHTML = `<div class="mavatar user" style="font-size:11px;font-weight:500">You</div><div class="bubble">${esc(t)}</div>`;
+function addUser(t){
+  const d=document.createElement('div'); d.className='msg user';
+  d.innerHTML=`<div class="msg-body" style="align-items:flex-end">
+    <div class="bubble">${esc(t)}</div>
+  </div>
+  <div class="mavatar user">You</div>`;
   document.getElementById('msgs').appendChild(d); scroll();
 }
 
-function addBot(html, em) {
-  const c = EC[em||cur], lb = em||cur;
+function addBot(html, em){
+  const t = THEMES[em||cur];
   const d = document.createElement('div'); d.className='msg';
-  d.innerHTML = `
-    <div class="mavatar bot"><i class="ti ti-robot" style="font-size:15px"></i></div>
-    <div>
-      <div style="margin-bottom:5px">
-        <span class="etag" style="background:${c.tbg};color:${c.tc};border:.5px solid ${c.tc}40">${c.emoji} ${lb} mode</span>
-      </div>
+  d.innerHTML=`<div class="mavatar bot">🤖</div>
+    <div class="msg-body">
+      <div class="etag">${t.emoji} ${t.label} mode</div>
       <div class="bubble">${html}</div>
     </div>`;
   document.getElementById('msgs').appendChild(d); scroll();
 }
 
-function addBotStreaming(em) {
-  const c = EC[em||cur], lb = em||cur;
-  const d = document.createElement('div'); d.className='msg'; d.id='streaming-msg';
-  d.innerHTML = `
-    <div class="mavatar bot"><i class="ti ti-robot" style="font-size:15px"></i></div>
-    <div>
-      <div style="margin-bottom:5px">
-        <span class="etag" style="background:${c.tbg};color:${c.tc};border:.5px solid ${c.tc}40">${c.emoji} ${lb} mode</span>
-      </div>
-      <div class="bubble" id="stream-bubble"><div class="ldots"><span></span><span></span><span></span></div></div>
+let msgCounter = 0;
+function addStreaming(em){
+  const t = THEMES[em||cur];
+  const id = 'msg-' + (++msgCounter);
+  const d = document.createElement('div'); d.className='msg';
+  d.innerHTML=`<div class="mavatar bot">🤖</div>
+    <div class="msg-body">
+      <div class="etag">${t.emoji} ${t.label} mode</div>
+      <div class="bubble" id="${id}"><div class="ldots"><span></span><span></span><span></span></div></div>
     </div>`;
   document.getElementById('msgs').appendChild(d); scroll();
-  return document.getElementById('stream-bubble');
+  return document.getElementById(id);
 }
 
-// ── Main send ────────────────────────────────────────────────────────────────
-window.send = async function() {
-  if (isLoading || !engine) return;
+function updateWordCount(text){
+  words += text.trim().split(/\s+/).length;
+  document.getElementById('swords').textContent = words;
+}
+
+// ── Main send ───────────────────────────────────────────────────────────────
+window.send = async function(){
+  if(loading||!engine) return;
   const inp = document.getElementById('inp');
-  const t = inp.value.trim(); if (!t) return;
-  inp.value = '';
+  const t = inp.value.trim(); if(!t) return;
+  inp.value='';
   addUser(t);
   count++;
   document.getElementById('smsgs').textContent = count;
-  isLoading = true;
-  document.getElementById('sbtn').disabled = true;
-
-  const c = EC[cur];
-  const bubble = addBotStreaming(cur);
-  let fullText = '';
-
-  try {
-    const chunks = await engine.chat.completions.create({
-      messages: [
-        { role: 'system', content: `You are NeuraTutor, an emotion-aware AI learning assistant. ${c.sys} Keep response under 160 words. Be direct and helpful.` },
-        { role: 'user', content: t }
-      ],
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 300,
-    });
-
-    bubble.textContent = '';
-    for await (const chunk of chunks) {
-      const delta = chunk.choices[0]?.delta?.content || '';
-      fullText += delta;
-      // Convert **bold** to html on the fly
-      bubble.innerHTML = fullText.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-      scroll();
+  loading=true;
+  document.getElementById('sbtn').disabled=true;
+  const bubble = addStreaming(cur);
+  let full='';
+  try{
+    if(GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE"){
+      throw new Error("No API key set. Open this file and paste your free Gemini API key into GEMINI_API_KEY.");
     }
-  } catch(e) {
-    bubble.textContent = '⚠️ Error generating response. Try again.';
+    const sysPrompt = `You are NeuraTutor, an emotion-aware AI learning assistant. ${THEMES[cur].sys} Keep your response under 180 words. Bold key terms with **double asterisks**. Be warm, direct, and genuinely helpful. Never refuse — always adapt.`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: t }] }],
+          systemInstruction: { parts: [{ text: sysPrompt }] },
+          generationConfig: { temperature: 0.72, maxOutputTokens: 2048 }
+        })
+      }
+    );
+
+    if(!res.ok){
+      const errBody = await res.text();
+      throw new Error(`API error ${res.status}: ${errBody.slice(0,200)}`);
+    }
+
+    const data = await res.json();
+    full = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    if(!full){
+      const finishReason = data?.candidates?.[0]?.finishReason;
+      console.log('Full API response:', JSON.stringify(data));
+      throw new Error(`No response text (finishReason: ${finishReason || 'unknown'}). Check browser console for details.`);
+    }
+    const finishReason = data?.candidates?.[0]?.finishReason;
+    if(finishReason === 'MAX_TOKENS') full += '\n\n*(response truncated — try asking for a shorter answer)*';
+
+    bubble.innerHTML = full
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/`(.+?)`/g,'<code>$1</code>')
+      .replace(/\n/g,'<br>');
+    scroll();
+    updateWordCount(full);
+  }catch(e){
+    bubble.innerHTML = '⚠️ '+esc(e.message);
     console.error(e);
   }
-
-  document.getElementById('streaming-msg').id = '';
-  isLoading = false;
-  document.getElementById('sbtn').disabled = false;
-  updateStats(); 
+  loading=false;
+  document.getElementById('sbtn').disabled=false;
 };
+</script>
+
+<!-- App init — no model download needed, uses Gemini API -->
+<script>
+const ldr = document.getElementById('loader');
+ldr.classList.add('gone');
+setTimeout(()=>ldr.style.display='none', 400);
+
+const inp = document.getElementById('inp');
+inp.disabled=false;
+inp.placeholder='Ask me anything…';
+document.getElementById('sbtn').disabled=false;
+document.getElementById('topic-btns').style.display='flex';
+
+const st = document.getElementById('mstatus');
+st.textContent='ready'; st.className='ok';
+
+addBot("I'm ready! 🎉 You're in <strong>Curious</strong> mode — I'll give you rich, exploratory explanations with real-world examples and interesting tangents.<br><br>Pick a topic below or just ask me anything.", 'curious');
 </script>
 </body>
 </html>
