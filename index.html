@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeuraTutor — Emotion-Aware Learning Assistant</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f4;
+      --bg-tertiary: #e8e8e5;
+      --text-primary: #1a1a1a;
+      --text-secondary: #6b6b6b;
+      --text-tertiary: #9b9b9b;
+      --border: rgba(0,0,0,0.12);
+      --border-md: rgba(0,0,0,0.20);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --purple-50: #EEEDFE;
+      --purple-200: #AFA9EC;
+      --purple-400: #7F77DD;
+      --purple-600: #534AB7;
+      --purple-800: #3C3489;
+      --purple-900: #26215C;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1e1e1e;
+        --bg-secondary: #2a2a2a;
+        --bg-tertiary: #333333;
+        --text-primary: #f0f0f0;
+        --text-secondary: #a0a0a0;
+        --text-tertiary: #666666;
+        --border: rgba(255,255,255,0.10);
+        --border-md: rgba(255,255,255,0.18);
+        --purple-50: #2a2660;
+        --purple-200: #534AB7;
+        --purple-400: #7F77DD;
+        --purple-600: #AFA9EC;
+        --purple-800: #CECBF6;
+        --purple-900: #EEEDFE;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-tertiary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 720px;
+      height: 700px;
+      background: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 12px 16px;
+      border-bottom: 0.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-secondary);
+      flex-shrink: 0;
+    }
+    .avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--purple-50);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .avatar i { font-size: 20px; color: var(--purple-600); }
+    .header-info { flex: 1; }
+    .header-title { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+    .header-sub { font-size: 12px; color: var(--text-secondary); }
+    .engage-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+    .engage-wrap span { font-size: 11px; color: var(--text-secondary); }
+    .engage-track { width: 80px; height: 6px; border-radius: 3px; background: var(--bg-tertiary); overflow: hidden; }
+    #engage-bar { height: 100%; border-radius: 3px; background: var(--purple-400); width: 75%; transition: width 0.5s, background 0.5s; }
+
+    /* ── Emotion bar ── */
+    .emotion-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 0.5px solid var(--border);
+      flex-shrink: 0; flex-wrap: wrap;
+    }
+    .emotion-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+    .emotion-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill {
+      font-size: 11px; padding: 3px 10px;
+      border-radius: 999px;
+      border: 0.5px solid var(--border-md);
+      cursor: pointer; transition: all 0.15s;
+      color: var(--text-secondary);
+      background: var(--bg-primary);
+    }
+    .pill.active { background: var(--purple-50); color: var(--purple-800); border-color: var(--purple-200); font-weight: 500; }
+    .pill:hover:not(.active) { background: var(--bg-tertiary); }
+
+    /* ── Messages ── */
+    .messages {
+      flex: 1; overflow-y: auto;
+      padding: 16px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .msg { display: flex; gap: 10px; align-items: flex-start; }
+    .msg.user { flex-direction: row-reverse; }
+    .msg-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 500;
+    }
+    .msg-avatar.bot { background: var(--purple-50); color: var(--purple-600); }
+    .msg-avatar.user { background: #E1F5EE; color: #0F6E56; }
+    .bubble {
+      max-width: 80%; padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 13px; line-height: 1.65;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--border);
+    }
+    .msg.user .bubble { background: var(--purple-50); border-color: var(--purple-200); color: var(--purple-900); }
+    .emotion-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; padding: 2px 8px;
+      border-radius: 999px; margin-bottom: 5px; font-weight: 500;
+    }
+
+    /* ── Topic buttons ── */
+    .topic-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .topic-btn {
+      font-size: 11px; padding: 5px 10px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--border-md);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      cursor: pointer; transition: background 0.15s;
+    }
+    .topic-btn:hover { background: var(--bg-secondary); }
+
+    /* ── Stats ── */
+    .stats-row {
+      display: flex; gap: 8px;
+      padding: 10px 16px;
+      border-top: 0.5px solid var(--border);
+      background: var(--bg-secondary);
+      flex-shrink: 0;
+    }
+    .stat { flex: 1; text-align: center; }
+    .stat-val { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+    .stat-lbl { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
+
+    /* ── Input ── */
+    .hint { font-size: 11px; color: var(--text-tertiary); text-align: center; padding: 4px 16px 2px; flex-shrink: 0; }
+    .input-row { display: flex; gap: 8px; padding: 10px 16px; border-top: 0.5px solid var(--border); flex-shrink: 0; }
+    .input-row input {
+      flex: 1; font-size: 13px; padding: 8px 12px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--border-md);
+      background: var(--bg-primary); color: var(--text-primary);
+      outline: none; font-family: inherit;
+    }
+    .input-row input:focus { border-color: var(--purple-400); }
+    .send-btn {
+      padding: 8px 16px; border-radius: var(--radius-md);
+      border: 0.5px solid var(--purple-200);
+      background: var(--purple-50); color: var(--purple-800);
+      font-size: 13px; font-family: inherit;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      transition: background 0.15s;
+    }
+    .send-btn:hover { background: var(--purple-200); }
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Loading dots ── */
+    .loading-dots { display: inline-flex; gap: 3px; align-items: center; }
+    .loading-dots span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--purple-400);
+      animation: bounce 1.2s infinite;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%,80%,100% { transform: scale(0.7); opacity: 0.5; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── Status badge ── */
+    #model-status {
+      font-size: 11px; padding: 2px 8px;
+      border-radius: 999px;
+      border: 0.5px solid var(--border);
+      color: var(--text-secondary);
+    }
+    #model-status.ok { background: #E1F5EE; color: #085041; border-color: #9FE1CB; }
+    #model-status.err { background: #FAECE7; color: #4A1B0C; border-color: #F5C4B3; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="avatar"><i class="ti ti-brain"></i></div>
+    <div class="header-info">
+      <div class="header-title">NeuraTutor</div>
+      <div class="header-sub">Emotion-Aware Virtual Learning Assistant</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <span id="model-status">checking model…</span>
+      <div class="engage-wrap">
+        <span>Engagement</span>
+        <div class="engage-track"><div id="engage-bar"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Emotion selector -->
+  <div class="emotion-bar">
+    <span class="emotion-label"><i class="ti ti-mood-smile" style="font-size:13px;vertical-align:-1px;margin-right:3px"></i>Your mood:</span>
+    <div class="emotion-pills">
+      <span class="pill" data-emotion="confident">😊 Confident</span>
+      <span class="pill active" data-emotion="curious">🤔 Curious</span>
+      <span class="pill" data-emotion="confused">😕 Confused</span>
+      <span class="pill" data-emotion="frustrated">😤 Frustrated</span>
+      <span class="pill" data-emotion="bored">😑 Bored</span>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages" id="messages">
+    <div class="msg">
+      <div class="msg-avatar bot"><i class="ti ti-robot" style="font-size:15px"></i></div>
+      <div>
+        <div class="bubble">
+          Hey! I'm <strong>NeuraTutor</strong> — your AI learning companion that adapts to how you feel. 👋<br><br>
+          You're feeling <strong>curious</strong> — perfect for exploring! Pick a topic or ask anything:
+          <div class="topic-btns">
+            <button class="topic-btn" onclick="askTopic('Explain neural networks to me')">🧠 Neural Networks</button>
+            <button class="topic-btn" onclick="askTopic('How does machine learning work?')">🤖 Machine Learning</button>
+            <button class="topic-btn" onclick="askTopic('What is gradient descent?')">📉 Gradient Descent</button>
+            <button class="topic-btn" onclick="askTopic('Explain backpropagation simply')">🔁 Backpropagation</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val" id="stat-msgs">0</div><div class="stat-lbl">exchanges</div></div>
+    <div class="stat"><div class="stat-val" id="stat-mood">Curious</div><div class="stat-lbl">current mood</div></div>
+    <div class="stat"><div class="stat-val" id="stat-style">Exploratory</div><div class="stat-lbl">teach style</div></div>
+  </div>
+
+  <div class="hint">Change your mood above — the AI adapts its teaching style automatically</div>
+
+  <!-- Input -->
+  <div class="input-row">
+    <input type="text" id="user-input" placeholder="Ask anything…" />
+    <button class="send-btn" id="send-btn" onclick="sendMsg()">
+      <i class="ti ti-send"></i> Ask
+    </button>
+  </div>
+
+</div>
+
+<script>
+  // The backend URL — change this if you're running on Kaggle with ngrok
+  const BACKEND = window.location.origin;
+
+  const emotionConfig = {
+    confident:  { emoji:"😊", style:"Concise",     engage:85, color:"#1D9E75", tagBg:"#E1F5EE", tagColor:"#085041" },
+    curious:    { emoji:"🤔", style:"Exploratory",  engage:75, color:"#7F77DD", tagBg:"#EEEDFE", tagColor:"#26215C" },
+    confused:   { emoji:"😕", style:"Simplified",   engage:40, color:"#BA7517", tagBg:"#FAEEDA", tagColor:"#412402" },
+    frustrated: { emoji:"😤", style:"Supportive",   engage:25, color:"#D85A30", tagBg:"#FAECE7", tagColor:"#4A1B0C" },
+    bored:      { emoji:"😑", style:"Engaging",     engage:20, color:"#888780", tagBg:"#F1EFE8", tagColor:"#2C2C2A" },
+  };
+
+  let currentEmotion = "curious";
+  let msgCount = 0;
+  let isLoading = false;
+
+  // Health check
+  fetch(`${BACKEND}/health`)
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById("model-status");
+      el.textContent = "model ready";
+      el.className = "ok";
+    })
+    .catch(() => {
+      const el = document.getElementById("model-status");
+      el.textContent = "server offline";
+      el.className = "err";
+    });
+
+  updateStats();
+
+  document.getElementById("user-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMsg();
+  });
+
+  document.querySelectorAll(".pill").forEach(p => {
+    p.addEventListener("click", () => {
+      document.querySelectorAll(".pill").forEach(x => x.classList.remove("active"));
+      p.classList.add("active");
+      currentEmotion = p.dataset.emotion;
+      updateStats();
+      const cfg = emotionConfig[currentEmotion];
+      addBotMsg(
+        `Switched to <strong>${currentEmotion}</strong> ${cfg.emoji} mode — now teaching in <strong>${cfg.style}</strong> style. What would you like to learn?`,
+        currentEmotion
+      );
+    });
+  });
+
+  function updateStats() {
+    const cfg = emotionConfig[currentEmotion];
+    document.getElementById("stat-mood").textContent = currentEmotion.charAt(0).toUpperCase() + currentEmotion.slice(1);
+    document.getElementById("stat-style").textContent = cfg.style;
+    document.getElementById("engage-bar").style.width = cfg.engage + "%";
+    document.getElementById("engage-bar").style.background = cfg.color;
+  }
+
+  function scrollDown() {
+    const m = document.getElementById("messages");
+    m.scrollTop = m.scrollHeight;
+  }
+
+  function askTopic(text) {
+    document.getElementById("user-input").value = text;
+    sendMsg();
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function addUserMsg(text) {
+    const div = document.createElement("div");
+    div.className = "msg user";
+    div.innerHTML = `
+      <div class="msg-avatar user" style="font-size:11px;font-weight:500">You</div>
+      <div class="bubble">${escapeHtml(text)}</div>`;
+    document.getElementById("messages").appendChild(div);
+    scrollDown();
+  }
+
+  function addBotMsg(html, emotion) {
+    const cfg = emotionConfig[emotion || currentEmotion];
+    const label = (emotion || currentEmotion);
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `
+      <div class="msg-avatar bot"><i class="ti ti-robot" style="font-size:15px"></i></div>
+      <div>
+        <div style="margin-bottom:5px">
+          <span class="emotion-tag" style="background:${cfg.tagBg};color:${cfg.tagColor};border:0.5px solid ${cfg.tagColor}40">
+            ${cfg.emoji} ${label} mode
+          </span>
+        </div>
+        <div class="bubble">${html}</div>
+      </div>`;
+    document.getElementById("messages").appendChild(div);
+    scrollDown();
+  }
+
+  function addLoadingMsg() {
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.id = "loading-msg";
+    div.innerHTML = `
+      <div class="msg-avatar bot"><i class="ti ti-robot" style="font-size:15px"></i></div>
+      <div class="bubble">
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+      </div>`;
+    document.getElementById("messages").appendChild(div);
+    scrollDown();
+  }
+
+  async function sendMsg() {
+    if (isLoading) return;
+    const inp = document.getElementById("user-input");
+    const text = inp.value.trim();
+    if (!text) return;
+
+    inp.value = "";
+    addUserMsg(text);
+    msgCount++;
+    document.getElementById("stat-msgs").textContent = msgCount;
+    isLoading = true;
+    document.getElementById("send-btn").disabled = true;
+    addLoadingMsg();
+
+    try {
+      const resp = await fetch(`${BACKEND}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, emotion: currentEmotion }),
+      });
+      const data = await resp.json();
+      document.getElementById("loading-msg")?.remove();
+      addBotMsg(data.reply || "I couldn't generate a response. Try again.", currentEmotion);
+    } catch (err) {
+      document.getElementById("loading-msg")?.remove();
+      addBotMsg("⚠️ Could not reach the server. Make sure <code>app.py</code> is running.", currentEmotion);
+    }
+
+    isLoading = false;
+    document.getElementById("send-btn").disabled = false;
+    updateStats();
+  }
+</script>
+</body>
+</html>
